@@ -1,7 +1,7 @@
 /**
  * This file contains input request validation
  */
-const { getValidationSchema } = require("schemaValidator/supplyPlanning/scenarios/scenariosTableSchema");
+const { getValidationSchema } = require("/customDependencies/nodejs/schemaValidator/supplyPlanning/scenarios/scenariosTableSchema");
 
 /**
  * @description Function to validate input request
