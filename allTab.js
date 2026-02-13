@@ -1,50 +1,96 @@
-/**
- * This file builds all tab query condition
- * and fetches all tab scenarios data
- */
+// __tests__/scenariosTable/getSudoTab.test.js
+
+const assert = require("assert");
+
+jest.mock("prismaORM/index", () => ({
+  dbConnect: jest.fn(),
+  dbDisconnect: jest.fn(),
+}));
+
+jest.mock("constants/customConstants", () => ({
+  DB_CLOSE_CONNECTION_STMT: "DB connection closed",
+}));
+
+jest.mock("../../src/scenariosTable/v1/1/scenariosTable", () => ({
+  getScenarioCount: jest.fn(),
+  getScenarioPage: jest.fn(),
+}));
+
 const { dbConnect, dbDisconnect } = require("prismaORM/index");
-const { DB_CLOSE_CONNECTION_STMT } = require("constants/customConstants");
+const { getScenarioCount, getScenarioPage } = require("../../src/scenariosTable/v1/1/scenariosTable");
+const { getGetsudoTabScenariosData } = require("../../src/scenariosTable/v1/1/getSudoTab");
 
-const {
-   getScenarioCount,
-  getScenarioPage,
-} = require("./scenariosTable.js");
+describe("SP Scenarios Table - GETSUDO Tab Test Suite", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-/**
- * @description Function to get all tab scenarios data
- * @param {*} {Object} params: type, page, limit
- * @returns {Object} totalRecords & rows
- */
-async function getAllTabScenariosData(params) {
-  /* Connecting to DB */
-  const rdb = await dbConnect();
-  try {
-    const { page, limit } = params;
+  it("Unit Test Case 1: Should return {totalRecords, rows} for GETSUDO tab and call DB helpers with planType='Getsudo'", async () => {
+    console.log(
+      "*****************Unit Test Case 1: GETSUDO tab returns data*****************"
+    );
 
-    // No extra condition for ALL tab
-    // All tab -> no plan_type filter.
-    const planType=null;
+    const fakeRdb = { name: "fake-prisma-client" };
+    dbConnect.mockResolvedValue(fakeRdb);
 
-    const [countRow, rows] = await Promise.all([
-      /**
-       * @description Function to get scenarios count
-       */
-      getScenarioCount(rdb,planType),
-      /**
-       * @description Function to get scenarios data
-       */
-      getScenarioPage(rdb,planType,page,limit),
-    ]);
+    getScenarioCount.mockResolvedValue({ count: 12 });
+    getScenarioPage.mockResolvedValue([{ scenario: "G1" }]);
 
-    const totalRecords = Number(countRow?.count || 0);
-    return { totalRecords, rows };
-  } catch (err) {
-    console.log("Error in getAllTabScenariosData:", err);
-    throw err;
-  } finally {
-    dbDisconnect();
-    console.log(DB_CLOSE_CONNECTION_STMT);
-  }
-}
+    const params = { type: "Getsudo", page: 2, limit: 10 };
 
-module.exports = { getAllTabScenariosData };
+    const result = await getGetsudoTabScenariosData(params);
+
+    // DB connect + disconnect
+    assert.equal(dbConnect.mock.calls.length, 1);
+    assert.equal(dbDisconnect.mock.calls.length, 1);
+
+    // planType must be 'Getsudo' for GETSUDO tab
+    assert.equal(getScenarioCount.mock.calls.length, 1);
+    assert.deepEqual(getScenarioCount.mock.calls[0], [fakeRdb, "Getsudo"]);
+
+    assert.equal(getScenarioPage.mock.calls.length, 1);
+    assert.deepEqual(getScenarioPage.mock.calls[0], [fakeRdb, "Getsudo", 2, 10]);
+
+    assert.deepEqual(result, {
+      totalRecords: 12,
+      rows: [{ scenario: "G1" }],
+    });
+  });
+
+  it("Unit Test Case 2: Should default totalRecords to 0 when countRow is missing", async () => {
+    console.log(
+      "*****************Unit Test Case 2: GETSUDO tab totalRecords default*****************"
+    );
+
+    const fakeRdb = { name: "fake-prisma-client" };
+    dbConnect.mockResolvedValue(fakeRdb);
+
+    getScenarioCount.mockResolvedValue(undefined); // simulate unexpected
+    getScenarioPage.mockResolvedValue([]);
+
+    const params = { type: "Getsudo", page: 1, limit: 40 };
+    const result = await getGetsudoTabScenariosData(params);
+
+    assert.deepEqual(result, { totalRecords: 0, rows: [] });
+    assert.equal(dbDisconnect.mock.calls.length, 1);
+  });
+
+  it("Unit Test Case 3: Should rethrow error when DB helper throws and still disconnect", async () => {
+    console.log(
+      "*****************Unit Test Case 3: GETSUDO tab rethrows error*****************"
+    );
+
+    const fakeRdb = { name: "fake-prisma-client" };
+    dbConnect.mockResolvedValue(fakeRdb);
+
+    const err = new Error("DB error");
+    getScenarioCount.mockRejectedValue(err);
+
+    const params = { type: "Getsudo", page: 2, limit: 10 };
+
+    await assert.rejects(async () => getGetsudoTabScenariosData(params), (e) => e === err);
+
+    // must disconnect in finally
+    assert.equal(dbDisconnect.mock.calls.length, 1);
+  });
+});
