@@ -55,6 +55,18 @@ const { API_ERROR_MESSAGE } = require("constants/customConstants");
     }
   ]
 }
+
+// if data for scenarios not availabel
+If the data for scenarios is not available:
+
+{
+  "currentPage": 1, // Page no from the query Param
+  "recordsPerPage": 40,// Page limit from the Query Param
+  "totalRecords": 0,
+  "totalPage": 0,
+  "data": [],
+}
+  
  *
  * In-valid input error with status 400:
  * {

@@ -6,8 +6,8 @@ const { dbConnect, dbDisconnect } = require("prismaORM/index");
 const { DB_CLOSE_CONNECTION_STMT } = require("constants/customConstants");
 
 const {
-  getScenariosDataCount,
-  getScenariosTableData,
+   getScenarioCount,
+  getScenarioPage,
 } = require("./scenariosTable.js");
 
 /**
@@ -22,20 +22,21 @@ async function getAllTabScenariosData(params) {
     const { page, limit } = params;
 
     // No extra condition for ALL tab
-    const queryConditionForDataNCountByTab = "";
+    // All tab -> no plan_type filter.
+    const planType=null;
 
-    const [countResult, rows] = await Promise.all([
+    const [countRow, rows] = await Promise.all([
       /**
        * @description Function to get scenarios count
        */
-      getScenariosDataCount(queryConditionForDataNCountByTab, rdb),
+      getScenarioCount(rdb,planType),
       /**
        * @description Function to get scenarios data
        */
-      getScenariosTableData(queryConditionForDataNCountByTab, page, limit, rdb),
+      getScenarioPage(rdb,planType,page,limit),
     ]);
 
-    const totalRecords = Number(countResult?.[0]?.count || 0);
+    const totalRecords = Number(countRow?.count || 0);
     return { totalRecords, rows };
   } catch (err) {
     console.log("Error in getAllTabScenariosData:", err);

@@ -70,10 +70,10 @@ async function getScenariosTableDataByType(params) {
   const { type } = params;
 
   if (type === "all") {
-    return await getAllTabScenariosData(params);
+    return  getAllTabScenariosData(params);
   }
    else  {
-    return await getGetSudoTabScenarioData(params);
+    return  getGetSudoTabScenarioData(params);
   }
 }
 

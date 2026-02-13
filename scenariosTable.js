@@ -6,7 +6,7 @@
  *   2) paginated rows (limit/offset)
  */
 
-const TABLE_NAME = "supply_planning.scenarios";
+
 
 /**
  * @description Function to get scenarios count
@@ -15,14 +15,34 @@ const TABLE_NAME = "supply_planning.scenarios";
  * @returns {Object} count row like { count: 10 }
  */
 async function getScenarioCount(rdb, planType) {
-  const rows = await rdb.$queryRaw`
-    SELECT count(*)::int AS count
-    FROM ${TABLE_NAME}
-    WHERE is_active = true
-      AND (${planType}::text IS NULL OR plan_type = ${planType})
-  `;
+//   if(planType==null){
+//     const rows = await rdb.$queryRaw`
+//     SELECT count(*)::int AS count
+//     FROM supply_planning.scenarios
+//     WHERE is_active = true
+//   `;
 
-  return rows?.[0] || { count: 0 };
+//   return rows?.[0] || { count: 0 };
+//   }
+
+//    if(planType==null){
+//     const rows = await rdb.$queryRaw`
+//     SELECT count(*)::int AS count
+//     FROM supply_planning.scenarios
+//     WHERE is_active = true AND plan_type=$(planTYpe)
+//   `;
+
+//   return rows?.[0] || { count: 0 };
+  
+// };
+
+const rows= await rdb.$queryRaw`
+        SELECT count(*)::int AS count 
+        FROM supply_planning.scenarios
+        WHERE is_active = true
+        AND (${planType} IS NULL OR plan_type= ${planType})
+`;
+return rows?.[0] || {count:0}
 }
 
 /**
@@ -47,9 +67,9 @@ async function getScenarioPage(rdb, planType, page, limit) {
       user_name AS "createdBy",
       last_updated AS "lastUpdated",
       scenario_status AS "status"
-    FROM ${TABLE_NAME}
+    FROM supply_planning.scenarios
     WHERE is_active = true
-      AND (${planType}::text IS NULL OR plan_type = ${planType})
+      AND (${planType} IS NULL OR plan_type= ${planType})
     ORDER BY created_date_timestamp DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
