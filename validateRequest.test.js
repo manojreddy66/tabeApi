@@ -2,11 +2,20 @@
 
 const assert = require("assert");
 
-jest.mock("../../src/scenariosTable/v1/1/scenariosTableSchema", () => ({
-  getValidationSchema: jest.fn(),
-}));
+// ✅ EXACT path from validateRequest.js
+const SCHEMA_PATH =
+  "/customDependencies/nodejs/schemaValidator/supplyPlanning/scenarios/scenariosTableSchema";
 
-const { getValidationSchema } = require("../../src/scenariosTable/v1/1/scenariosTableSchema");
+// ✅ IMPORTANT: virtual:true tells Jest "mock even if module doesn't exist on disk"
+jest.mock(
+  SCHEMA_PATH,
+  () => ({
+    getValidationSchema: jest.fn(),
+  }),
+  { virtual: true }
+);
+
+const { getValidationSchema } = require(SCHEMA_PATH);
 const { validateInput } = require("../../src/scenariosTable/v1/1/validateRequest");
 
 describe("SP Scenarios Table - validateRequest.js Test Suite", () => {
@@ -14,62 +23,57 @@ describe("SP Scenarios Table - validateRequest.js Test Suite", () => {
     jest.clearAllMocks();
   });
 
-  it("Unit Test Case 1: Should return [] when validation passes", async () => {
+  it("Unit Test Case 1: Should return { errorMessages: [] } when validation passes", async () => {
     console.log(
       "*****************Unit Test Case 1: validateInput success*****************"
     );
 
-    const validateAsync = jest.fn().mockResolvedValue(true);
-    getValidationSchema.mockResolvedValue({ validateAsync });
+    // validate() returns { error: null } on success
+    const schema = {
+      validate: jest.fn().mockResolvedValue({ error: null }),
+    };
+
+    getValidationSchema.mockResolvedValue(schema);
 
     const params = { type: "all", page: 1, limit: 40 };
 
     const result = await validateInput(params);
 
-    assert.deepEqual(result, []);
+    assert.deepEqual(result, { errorMessages: [] });
     assert.equal(getValidationSchema.mock.calls.length, 1);
-    assert.equal(validateAsync.mock.calls.length, 1);
-    assert.deepEqual(validateAsync.mock.calls[0][0], params);
+    assert.equal(schema.validate.mock.calls.length, 1);
+    assert.deepEqual(schema.validate.mock.calls[0][0], params);
+    assert.deepEqual(schema.validate.mock.calls[0][1], { abortEarly: false });
   });
 
-  it("Unit Test Case 2: Should return error messages array when validation fails (details[])", async () => {
+  it("Unit Test Case 2: Should return unique error messages when validation fails", async () => {
     console.log(
       "*****************Unit Test Case 2: validateInput returns errors*****************"
     );
 
-    const validateAsync = jest.fn().mockRejectedValue({
-      details: [
-        { message: "ValidationError: page is required and must be number." },
-        { message: "ValidationError: limit is required and must be number." },
+    const schema = {
+      validate: jest.fn().mockResolvedValue({
+        error: {
+          details: [
+            { message: "ValidationError: type is invalid" },
+            { message: "ValidationError: page must be a number" },
+            { message: "ValidationError: page must be a number" }, // duplicate
+          ],
+        },
+      }),
+    };
+
+    getValidationSchema.mockResolvedValue(schema);
+
+    const params = { type: "bad", page: "x", limit: 10 };
+
+    const result = await validateInput(params);
+
+    assert.deepEqual(result, {
+      errorMessages: [
+        "ValidationError: type is invalid",
+        "ValidationError: page must be a number",
       ],
     });
-
-    getValidationSchema.mockResolvedValue({ validateAsync });
-
-    const params = { type: "all", page: "x", limit: "y" };
-
-    const result = await validateInput(params);
-
-    assert.deepEqual(result, [
-      "ValidationError: page is required and must be number.",
-      "ValidationError: limit is required and must be number.",
-    ]);
-  });
-
-  it("Unit Test Case 3: Should return [] if validator throws but has no details (defensive)", async () => {
-    console.log(
-      "*****************Unit Test Case 3: validateInput defensive error*****************"
-    );
-
-    const validateAsync = jest.fn().mockRejectedValue(new Error("boom"));
-    getValidationSchema.mockResolvedValue({ validateAsync });
-
-    const params = { type: "all", page: 1, limit: 40 };
-
-    const result = await validateInput(params);
-
-    // depending on your implementation, you might return [] or ["boom"].
-    // This assertion matches the common pattern: return [] when no details exist.
-    assert.deepEqual(result, []);
   });
 });
