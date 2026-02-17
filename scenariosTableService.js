@@ -5,7 +5,7 @@ const { BadRequest } = require("utils/api_response_utils");
 const { validateInput } = require("./validateRequest");
 
 const { getAllTabScenariosData } = require("./allTab");
-const { getGetSudoTabScenarioData } = require("./getsudoTab");
+const { getGetsudoTabScenariosData } = require("./getSudoTab");
 
 const { prepareResponse } = require("./utils");
 
@@ -35,9 +35,8 @@ async function getScenariosTable(event) {
      * @description validate input params (type/page/limit)
      * @param { Object } params - the input parameters to vlidate
      * @returns {Promise<Array<string>>} Array of error messages (empty if valid)
-     *  - errorMessages: Array
      */
-    const errorMessages = await validateInput(params);
+    const { errorMessages } = await validateInput(params);
 
     if (errorMessages.length > 0) {
       throw new BadRequest(errorMessages);
@@ -45,7 +44,7 @@ async function getScenariosTable(event) {
 
     /**
      * @description route to tab logic based on type
-     * Each tab returns: { totalRecords, rows }
+     * Each tab handler returns: { totalRecords, rows }
      */
     const { totalRecords, rows } = await getScenariosTableDataByType(
       params
@@ -63,8 +62,8 @@ async function getScenariosTable(event) {
 
 /**
  * @description Function to fetch scenarios data by type provided in path param
- * @param {Object} params: type, page, limit
- * @returns {Object} totalRecords & rows
+ * @param {{type:string,page:number,limit:number}} params: type, page, limit
+ * @returns {Promise<{totalRecords: number, roes: any[]}>}
  */
 async function getScenariosTableDataByType(params) {
   const { type } = params;
@@ -72,9 +71,9 @@ async function getScenariosTableDataByType(params) {
   if (type === "all") {
     return  getAllTabScenariosData(params);
   }
-   else  {
-    return  getGetSudoTabScenarioData(params);
-  }
+   else {
+    return  getGetsudoTabScenariosData(params);
+   }
 }
 
 module.exports = { getScenariosTable };

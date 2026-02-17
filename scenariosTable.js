@@ -25,7 +25,6 @@ async function getScenarioCount(rdb, planType) {
 //   return rows?.[0] || { count: 0 };
 //   }
 
-//    if(planType==null){
 //     const rows = await rdb.$queryRaw`
 //     SELECT count(*)::int AS count
 //     FROM supply_planning.scenarios
